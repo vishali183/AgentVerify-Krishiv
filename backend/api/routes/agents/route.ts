@@ -17,7 +17,7 @@ export async function GET() {
       agents: agents.map((agent) => ({
         id: agent.externalId,
         name: agent.name,
-        capabilities: agent.capabilities,
+        capabilities: agent.capabilities.map((capability) => capability.capability),
         reputation: agent.reputationScore || null,
         transactions: agent.verifications.length,
         successRate: agent.verifications.length

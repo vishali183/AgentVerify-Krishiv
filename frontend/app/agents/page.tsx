@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; reputation: number | null; status: string; transactions: number }>>([]);
+  const [agents, setAgents] = useState<Array<{ id: string; name: string; capabilities?: string[]; reputation: number | null; successRate?: number | null; status: string; transactions: number; lastVerifiedAt?: string }>>([]);
   const [error, setError] = useState(false);
   useEffect(() => { fetch('/api/agents').then((response) => response.json()).then((data) => { if (data.ok) setAgents(data.agents); else setError(true); }).catch(() => setError(true)); }, []);
   return (
@@ -22,6 +22,7 @@ export default function AgentsPage() {
                 <th className="px-4 py-3">Agent</th>
                 <th className="px-4 py-3">Specialty</th>
                 <th className="px-4 py-3">Reputation</th>
+                <th className="px-4 py-3">Success</th>
                 <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
@@ -29,15 +30,16 @@ export default function AgentsPage() {
               {agents.length ? agents.map((agent) => (
                 <tr key={agent.id} className="border-t border-slate-800">
                   <td className="px-4 py-3 font-medium text-white"><Link className="hover:text-brand-300" href={`/agents/${agent.id}`}>{agent.name}</Link></td>
-                  <td className="px-4 py-3 text-slate-300">{agent.transactions} transactions</td>
+                  <td className="px-4 py-3 text-slate-300">{agent.capabilities?.join(', ') || `${agent.transactions} transactions`}</td>
                   <td className="px-4 py-3 text-slate-200">{agent.reputation ?? 'Insufficient data'}</td>
+                  <td className="px-4 py-3 text-slate-200">{agent.successRate ?? '—'}{agent.successRate !== null && agent.successRate !== undefined ? '%' : ''}</td>
                   <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${agent.status === 'Verified' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-300'}`}>
+                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${agent.status.toLowerCase() === 'verified' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-300'}`}>
                       {agent.status}
                     </span>
                   </td>
                 </tr>
-              )) : <tr><td colSpan={4} className="p-6 text-slate-400">No agents have persisted verification history yet.</td></tr>}
+              )) : <tr><td colSpan={5} className="p-6 text-slate-400">No agents have persisted verification history yet.</td></tr>}
             </tbody>
           </table>
         </div>
