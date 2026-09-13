@@ -1,0 +1,14 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+
+type Trust = { agent: { id: string; name: string }; overall: { score: number | null; transactions: number; successRate: number | null; trend: string }; capabilities: Array<{ capability: string; score: number | null; transactions: number; confidence: number | null; trend: string; sufficientData: boolean }> };
+
+export default function AgentTrustProfile() {
+  const params = useParams<{ id: string }>();
+  const [trust, setTrust] = useState<Trust | null>(null);
+  useEffect(() => { fetch(`/api/agents/${params.id}/trust`).then((response) => response.json()).then((data) => setTrust(data.ok ? data : null)); }, [params.id]);
+  if (!trust) return <main className="min-h-screen bg-slate-950 p-10 text-slate-400">Loading trust profile…</main>;
+  return <main className="min-h-screen bg-grid px-4 py-10 text-slate-100 md:px-8"><div className="page-content mx-auto max-w-6xl"><header className="animate-in mb-8"><p className="text-sm uppercase tracking-[0.2em] text-brand-300">Agent trust profile</p><h1 className="mt-2 text-4xl font-bold text-white">{trust.agent.name}</h1><p className="mt-2 font-mono text-sm text-slate-400">{trust.agent.id}</p></header><section className="grid gap-4 md:grid-cols-3"><div className="card-surface rounded-2xl p-5"><div className="text-slate-400">Overall trust</div><div className="mt-2 text-4xl font-bold text-white">{trust.overall.score ?? 'Insufficient data'}</div></div><div className="card-surface rounded-2xl p-5"><div className="text-slate-400">Success rate</div><div className="mt-2 text-4xl font-bold text-white">{trust.overall.successRate ?? 'Insufficient data'}{trust.overall.successRate !== null && '%'}</div></div><div className="card-surface rounded-2xl p-5"><div className="text-slate-400">Performance trend</div><div className="mt-2 text-2xl font-bold text-brand-300">{trust.overall.trend}</div></div></section><section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{trust.capabilities.map((item) => <div key={item.capability} className="card-surface interactive-card rounded-2xl p-5"><div className="flex justify-between"><h2 className="font-semibold text-white">{item.capability}</h2><span className="text-xs text-slate-400">{item.transactions} tx</span></div><div className="mt-5 text-3xl font-bold text-white">{item.sufficientData ? `${item.score}%` : 'Insufficient data'}</div><div className="mt-2 flex justify-between text-sm text-slate-400"><span>Confidence {item.confidence ?? '—'}</span><span>{item.trend}</span></div>{item.sufficientData && <div className="mt-4 h-2 rounded-full bg-slate-800"><div style={{ width: `${item.score}%` }} className="h-2 rounded-full bg-brand-500 transition-all duration-1000" /></div>}</div>)}</section></div></main>;
+}

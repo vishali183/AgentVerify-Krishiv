@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VerificationStatus {
+  VERIFIED
+  PARTIAL
+  FAILED
+  REFUSED
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         UserRole @default(OPERATOR)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Agent {
+  id                String                 @id @default(cuid())
+  externalId        String                 @unique
+  name              String
+  reputationScore   Float                  @default(0)
+  totalEvaluations  Int                    @default(0)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  verifications     Verification[]         @relation("ProviderVerifications")
+  reputationEvents  ReputationEvent[]
+  capabilities      AgentCapability[]
+}
+
+model AgentCapability {
+  id          String   @id @default(cuid())
+  agentId     String
+  capability  String
+  score       Float    @default(0)
+  confidence  Float    @default(0)
+  transactions Int     @default(0)
+  updatedAt   DateTime @updatedAt
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, capability])
+}
+
+model Verification {
+  id                String             @id @default(cuid())
+  requestText       String
+  responseText      String
+  providerAgentId   String?
+  status            VerificationStatus
+  score             Int
+  confidence        Int
+  summary           String
+  checks            Json
+  createdAt         DateTime           @default(now())
+  buyerAgent        String?
+  riskLevel         String             @default("MEDIUM")
+  capabilities      String[]
+  recommendation    String?
+  provider          Agent?             @relation("ProviderVerifications", fields: [providerAgentId], references: [id])
+  requirements      Requirement[]
+  evidence          Evidence[]
+  attestation       Attestation?
+  auditEvents       AuditEvent[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Requirement {
+  id             String       @id @default(cuid())
+  externalId     String
+  description    String
+  required       Boolean      @default(true)
+  weight         Float        @default(1)
+  verificationId String
+  verification   Verification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@index([verificationId])
+}
+
+model Evidence {
+  id             String       @id @default(cuid())
+  label          String
+  value          String
+  verificationId String
+  verification   Verification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@index([verificationId])
+}
+
+model Attestation {
+  id             String       @id @default(cuid())
+  verificationId String       @unique
+  status         VerificationStatus
+  score          Int
+  confidence     Int
+  agentId        String
+  taskId         String
+  issueHash      String       @unique
+  createdAt      DateTime     @default(now())
+  verification   Verification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+}
+
+model AuditEvent {
+  id             String        @id @default(cuid())
+  actor          String
+  action         String
+  resource       String
+  hash           String
+  verificationId String?
+  createdAt      DateTime      @default(now())
+  verification   Verification? @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([verificationId])
+}
+
+model ReputationEvent {
+  id        String   @id @default(cuid())
+  agentId   String
+  score     Int
+  status    VerificationStatus
+  createdAt DateTime @default(now())
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, createdAt])
+}
